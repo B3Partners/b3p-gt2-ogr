@@ -26,20 +26,20 @@ public class OGRDataStore extends AbstractFileDataStore {
     private String srs;
     private DataStore postgisDataStore;
     private OGRProcessor processor;
-    private Map tmp_params;
+    private Map ogr_tmp_db;
 
-    public OGRDataStore(URL url, String srs, Map tmp_params, boolean skipFailures) throws IOException {
+    public OGRDataStore(URL url, String srs, Map ogr_tmp_db, boolean skipFailures, Map ogr_settings) throws IOException {
         this.url = url;
         this.srs = srs;
-        this.tmp_params = tmp_params;
+        this.ogr_tmp_db = ogr_tmp_db;
         strippedFile = getTypeName(url);
 
         // File to tmp postgis
-        processor = new OGRProcessor(url, tmp_params, srs, skipFailures, strippedFile);
+        processor = new OGRProcessor(url, ogr_tmp_db, srs, skipFailures, strippedFile, ogr_settings);
         processor.process();
 
         // Open tmp postgis
-        postgisDataStore = new PostgisDataStoreFactory().createDataStore(tmp_params);
+        postgisDataStore = new PostgisDataStoreFactory().createDataStore(ogr_tmp_db);
     }
 
     public String[] getTypeNames() throws IOException {
@@ -62,6 +62,7 @@ public class OGRDataStore extends AbstractFileDataStore {
         return getSchema(strippedFile);
     }
 
+    @Override
     public FeatureReader getFeatureReader(Query query, Transaction trans) throws IOException {
         return postgisDataStore.getFeatureReader(query, trans);
     }

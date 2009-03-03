@@ -26,30 +26,28 @@ public class OGRProcessor {
 
     private static final Log log = LogFactory.getLog(OGRDataStore.class);
     //  public static final String TEMP_TABLE = "_temp_ogr";
-    private Properties osProperties;
+    //private Properties osParams;
     private String file_in;
     private Map db_out;
     private String srs;
     private boolean skipFailures;
     private String typename;
+    //private Map osParams;
+    private String fwtools_dir;
+    private Map<String, String> envirionment = new HashMap();
 
-    public OGRProcessor(URL url, Map db_tmp, String srs, boolean skipFailures, String typename) {
+    public OGRProcessor(URL url, Map db_tmp, String srs, boolean skipFailures, String typename, Map osFWTools) throws IOException {
         this.file_in = (new File(url.getFile())).getAbsolutePath();
         this.typename = typename;
         this.db_out = translateParams(db_tmp);
         this.srs = srs;
         this.skipFailures = skipFailures;
+        setDirAndSetEnv(osFWTools);
     }
 
     public void process() throws IOException {
-        osProperties = getOsSpecificProperties();
-
-        if (!osProperties.containsKey("ogr.dir")) {
-            throw new IOException("Property 'ogr.dir' not found");
-        }
-
         ArrayList<String> commandList = new ArrayList();
-        commandList.add(osProperties.getProperty("ogr.dir") + "bin/ogr2ogr");
+        commandList.add(fwtools_dir + "bin/ogr2ogr");
         commandList.add("-f");
         commandList.add("PostgreSQL");
         commandList.add("-a_srs");
@@ -57,7 +55,6 @@ public class OGRProcessor {
         commandList.add(mapToDBString(db_out));
         commandList.add(file_in);
         commandList.add("-nln");
-        //commandList.add(TEMP_TABLE);
         commandList.add(typename);
         commandList.add("-overwrite");
 
@@ -68,7 +65,8 @@ public class OGRProcessor {
         String[] commands = commandList.toArray(new String[commandList.size()]);
 
         ProcessBuilder pb = new ProcessBuilder(commands);
-        setEnvironment(pb.environment(), "ogr.env.");
+        // Add own Java Envirionment Settings
+        pb.environment().putAll(envirionment);
 
         Process child = pb.start();
 
@@ -110,6 +108,69 @@ public class OGRProcessor {
         return connect.substring(0, connect.length() - 1);
     }
 
+    public void setDirAndSetEnv(Map osParams) throws IOException {
+        String os = System.getProperty("os.name");
+
+        if (os.toLowerCase().contains("windows")) {
+            os = "windows";
+        } else if (os.toLowerCase().contains("linux")) {
+            os = "linux";
+        } else if (os.toLowerCase().contains("mac")) {
+            os = "mac";
+        }
+
+        if (osParams.containsKey(os)) {
+            if (osParams.get(os) instanceof Map) {
+                osParams = (Map) osParams.get(os);
+                if (osParams.containsKey("dir")) {
+                    if (osParams.get("dir") instanceof String) {
+                        fwtools_dir = (String) osParams.get("dir");
+                    } else {
+                        throw new IOException("Expected " + os + ".dir to contain single value");
+                    }
+                } else {
+                    throw new IOException("Property " + os + ".dir not found");
+                }
+            } else {
+                throw new IOException("Expected " + os + " to contain subdirs .dir and .env");
+            }
+        }
+
+        if (osParams.containsKey("env")) {
+            if (osParams.get("env") instanceof Map) {
+                Map envirionmentParameters = (Map) osParams.get("env");
+                Iterator iter = envirionmentParameters.keySet().iterator();
+                while (iter.hasNext()) {
+                    String key = (String) iter.next();
+                    if (envirionmentParameters.get(key) instanceof String) {
+                        String value = (String) envirionmentParameters.get(key);
+                        envirionment.put(key, fwtools_dir + value);
+                    } else {
+                        throw new IOException("Expected " + os + ".env." + key + " to contain single value");
+                    }
+                }
+            }
+        }
+    }
+
+    public static Map translateParams(Map map) {
+        Map newMap = new HashMap();
+        String[][] translate = new String[][]{
+            {"passwd", "password"},
+            {"host", "host"},
+            {"user", "user"},
+            {"database", "dbname"}
+        };
+
+        for (int i = 0; i < translate.length; i++) {
+            if (map.containsKey(translate[i][0])) {
+                newMap.put(translate[i][1], map.get(translate[i][0]));
+            }
+        }
+
+        return newMap;
+    }
+
     public void close(DataStore dataStore2Read) {
         try {
             // Drop temptable
@@ -126,58 +187,5 @@ public class OGRProcessor {
             // Drop table failed no biggie
             log.error(ex.getLocalizedMessage());
         }
-    }
-
-    private void setEnvironment(Map<String, String> environment, String prefix) {
-        try {
-
-            for (String prop : osProperties.stringPropertyNames()) {
-                if (prop.toLowerCase().startsWith(prefix)) {
-                    String key = prop.substring(prefix.length());
-                    String value = osProperties.getProperty(prop);
-                    environment.put(key, value);
-                }
-            }
-        } catch (Exception ex) {
-        }
-    }
-
-    public static Properties getOsSpecificProperties() {
-        String os = System.getProperty("os.name");
-        Properties p = new Properties();
-
-        try {
-            if (os.toLowerCase().contains("windows")) {
-                os = "windows";
-            } else if (os.toLowerCase().contains("linux")) {
-                os = "linux";
-            }
-
-            Class c = OGRProcessor.class;
-            URL envProperties = c.getResource("pref_" + os + ".properties");
-            p.load(envProperties.openStream());
-
-        } catch (Exception ex) {
-            log.warn("Unable to load environment settings from pref_" + os + ".properties;" + ex.getLocalizedMessage());
-        }
-        return p;
-    }
-
-    public static Map translateParams(Map map) {
-        Map newMap = new HashMap();
-        String[][] translate = new String[][]{
-            {"passwd", "password"},
-            {"host", "host"},
-            {"user", "user"},
-            {"database", "dbname"}
-        };
-
-        for(int i = 0; i < translate.length; i++){
-            if(map.containsKey(translate[i][0])){
-                newMap.put(translate[i][1], map.get(translate[i][0]));
-            }
-        }
-
-        return newMap;
     }
 }

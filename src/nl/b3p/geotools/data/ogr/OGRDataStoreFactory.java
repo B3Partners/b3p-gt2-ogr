@@ -23,8 +23,10 @@ public class OGRDataStoreFactory implements FileDataStoreFactorySpi {
 
     public static final DataStoreFactorySpi.Param PARAM_URL = new Param("url", URL.class, "url to a file supported by ogr2ogr");
     public static final DataStoreFactorySpi.Param PARAM_SRS = new Param("srs", String.class, "override srs");
-    public static final DataStoreFactorySpi.Param PARAM_OGR_DB = new Param("ogr_db", Map.class, "PostGIS temp database");
+    public static final DataStoreFactorySpi.Param PARAM_OGR_TMP_DB = new Param("ogr_tmp_db", Map.class, "PostGIS temp database");
     public static final DataStoreFactorySpi.Param PARAM_SKIPFAILURES = new Param("skip_failures", Boolean.class, "skip ogr2ogr failures");
+    public static final DataStoreFactorySpi.Param PARAM_OGR_SETTINGS = new Param("ogr_settings", Map.class, "Map containing os specific values for FWTools dirs");
+
     private static final String[] SUPPORTED = new String[]{
         "tab",
         "gml",
@@ -67,7 +69,7 @@ public class OGRDataStoreFactory implements FileDataStoreFactorySpi {
      */
     public boolean canProcess(Map params) {
         boolean result = false;
-        if (params.containsKey(PARAM_URL.key) && params.containsKey(PARAM_OGR_DB.key) && params.containsKey(PARAM_SKIPFAILURES.key)) {
+        if (params.containsKey(PARAM_URL.key) && params.containsKey(PARAM_OGR_TMP_DB.key) && params.containsKey(PARAM_SKIPFAILURES.key) && params.containsKey(PARAM_OGR_SETTINGS.key)) {
             try {
                 URL url = (URL) PARAM_URL.lookUp(params);
                 result = canProcess(url);
@@ -127,7 +129,7 @@ public class OGRDataStoreFactory implements FileDataStoreFactorySpi {
             throw new FileNotFoundException("File not found: " + params);
         }
 
-        return new OGRDataStore((URL) params.get(PARAM_URL.key), (String) params.get(PARAM_SRS.key), (Map) params.get(PARAM_OGR_DB.key), (Boolean) params.get(PARAM_SKIPFAILURES.key));
+        return new OGRDataStore((URL) params.get(PARAM_URL.key), (String) params.get(PARAM_SRS.key), (Map) params.get(PARAM_OGR_TMP_DB.key), (Boolean) params.get(PARAM_SKIPFAILURES.key), (Map) params.get(PARAM_OGR_SETTINGS.key));
     }
 
     public DataStore createNewDataStore(Map params) throws IOException {
