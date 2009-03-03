@@ -1,12 +1,14 @@
 package nl.b3p.geotools.data.ogr;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
@@ -23,22 +25,25 @@ import org.apache.commons.logging.LogFactory;
 public class OGRProcessor {
 
     private static final Log log = LogFactory.getLog(OGRDataStore.class);
-    public static final String TEMP_TABLE = "_temp_ogr";
+    //  public static final String TEMP_TABLE = "_temp_ogr";
     private Properties osProperties;
     private String file_in;
     private Map db_out;
     private String srs;
     private boolean skipFailures;
+    private String typename;
 
-    public OGRProcessor(URL url, Map db_tmp, String srs, boolean skipFailures) {
-        this.file_in = url.getPath() + url.getFile();
-        this.db_out = db_tmp;
+    public OGRProcessor(URL url, Map db_tmp, String srs, boolean skipFailures, String typename) {
+        this.file_in = (new File(url.getFile())).getAbsolutePath();
+        this.typename = typename;
+        this.db_out = translateParams(db_tmp);
         this.srs = srs;
         this.skipFailures = skipFailures;
     }
 
-    public void process() throws Exception {
+    public void process() throws IOException {
         osProperties = getOsSpecificProperties();
+
         if (!osProperties.containsKey("ogr.dir")) {
             throw new IOException("Property 'ogr.dir' not found");
         }
@@ -52,7 +57,8 @@ public class OGRProcessor {
         commandList.add(mapToDBString(db_out));
         commandList.add(file_in);
         commandList.add("-nln");
-        commandList.add(TEMP_TABLE);
+        //commandList.add(TEMP_TABLE);
+        commandList.add(typename);
         commandList.add("-overwrite");
 
         if (skipFailures) {
@@ -77,13 +83,17 @@ public class OGRProcessor {
             log.error(errorText);
         }
 
-        int result = child.waitFor();
-        if (result != 0) {
-            if (errorText.equals("")) {
-                throw new IOException("Loading file '" + file_in + "' failed. No error available");
-            } else {
-                throw new IOException("Loading file '" + file_in + "' failed. " + errorText);
+        try {
+            int result = child.waitFor();
+            if (result != 0) {
+                if (errorText.equals("")) {
+                    throw new IOException("Loading file '" + file_in + "' failed. No error available");
+                } else {
+                    throw new IOException("Loading file '" + file_in + "' failed. " + errorText);
+                }
             }
+        } catch (InterruptedException ex) {
+            throw new IOException(ex.getMessage(), ex.getCause());
         }
     }
 
@@ -108,7 +118,7 @@ public class OGRProcessor {
             con.setAutoCommit(true);
 
             // TODO make this function work with all databases
-            PreparedStatement ps = con.prepareStatement("DROP TABLE \"" + TEMP_TABLE + "\"; DELETE FROM \"geometry_columns\" WHERE f_table_name = '" + TEMP_TABLE + "'");
+            PreparedStatement ps = con.prepareStatement("DROP TABLE \"" + typename + "\"; DELETE FROM \"geometry_columns\" WHERE f_table_name = '" + typename + "'");
             ps.execute();
 
             con.close();
@@ -151,5 +161,23 @@ public class OGRProcessor {
             log.warn("Unable to load environment settings from pref_" + os + ".properties;" + ex.getLocalizedMessage());
         }
         return p;
+    }
+
+    public static Map translateParams(Map map) {
+        Map newMap = new HashMap();
+        String[][] translate = new String[][]{
+            {"passwd", "password"},
+            {"host", "host"},
+            {"user", "user"},
+            {"database", "dbname"}
+        };
+
+        for(int i = 0; i < translate.length; i++){
+            if(map.containsKey(translate[i][0])){
+                newMap.put(translate[i][1], map.get(translate[i][0]));
+            }
+        }
+
+        return newMap;
     }
 }

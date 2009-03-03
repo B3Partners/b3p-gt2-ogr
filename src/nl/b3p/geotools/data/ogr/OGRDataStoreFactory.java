@@ -23,20 +23,13 @@ public class OGRDataStoreFactory implements FileDataStoreFactorySpi {
 
     public static final DataStoreFactorySpi.Param PARAM_URL = new Param("url", URL.class, "url to a file supported by ogr2ogr");
     public static final DataStoreFactorySpi.Param PARAM_SRS = new Param("srs", String.class, "override srs");
-    public static final DataStoreFactorySpi.Param PARAM_TMP_DB = new Param("tmp_db", Map.class, "PostGIS temp database");
+    public static final DataStoreFactorySpi.Param PARAM_OGR_DB = new Param("ogr_db", Map.class, "PostGIS temp database");
     public static final DataStoreFactorySpi.Param PARAM_SKIPFAILURES = new Param("skip_failures", Boolean.class, "skip ogr2ogr failures");
     private static final String[] SUPPORTED = new String[]{
         "tab",
         "gml",
         "kml"
     };
-    /*
-    public static final DataStoreFactorySpi.Param PARAM_PORT = new Param("port", String.class, "PostGIS port");
-    public static final DataStoreFactorySpi.Param PARAM_PASSWD = new Param("passwd", String.class, "PostGIS password");
-    public static final DataStoreFactorySpi.Param PARAM_USER = new Param("user", String.class, "PostGIS user");
-    public static final DataStoreFactorySpi.Param PARAM_DATABASE = new Param("database", String.class, "PostGIS database");
-    public static final DataStoreFactorySpi.Param PARAM_HOST = new Param("host", String.class, "PostGIS host");
-     */
 
     public String getDisplayName() {
         return "OGR File";
@@ -47,7 +40,6 @@ public class OGRDataStoreFactory implements FileDataStoreFactorySpi {
     }
 
     public String[] getFileExtensions() {
-        int z = 9;
         return SUPPORTED;
     }
 
@@ -67,7 +59,6 @@ public class OGRDataStoreFactory implements FileDataStoreFactorySpi {
      * @return true if srs can be resolved
      */
     public boolean canProcess(String srs) throws NoSuchAuthorityCodeException, FactoryException {
-        int z = 9;
         return CRS.decode(srs) != null;
     }
 
@@ -76,7 +67,7 @@ public class OGRDataStoreFactory implements FileDataStoreFactorySpi {
      */
     public boolean canProcess(Map params) {
         boolean result = false;
-        if (params.containsKey(PARAM_URL.key) && params.containsKey(PARAM_TMP_DB.key) && params.containsKey(PARAM_SKIPFAILURES.key)) {
+        if (params.containsKey(PARAM_URL.key) && params.containsKey(PARAM_OGR_DB.key) && params.containsKey(PARAM_SKIPFAILURES.key)) {
             try {
                 URL url = (URL) PARAM_URL.lookUp(params);
                 result = canProcess(url);
@@ -129,7 +120,6 @@ public class OGRDataStoreFactory implements FileDataStoreFactorySpi {
         } else {
             return createDataStore(params);
         }
-
     }
 
     public DataStore createDataStore(Map params) throws IOException {
@@ -137,8 +127,7 @@ public class OGRDataStoreFactory implements FileDataStoreFactorySpi {
             throw new FileNotFoundException("File not found: " + params);
         }
 
-        //OGRDataStore(URL url, String srs, Map tmp_params, boolean skipFailures)
-        return new OGRDataStore((URL) params.get(PARAM_URL.key), (String) params.get(PARAM_SRS.key), (Map) params.get(PARAM_TMP_DB.key), (Boolean) params.get(PARAM_SKIPFAILURES.key));
+        return new OGRDataStore((URL) params.get(PARAM_URL.key), (String) params.get(PARAM_SRS.key), (Map) params.get(PARAM_OGR_DB.key), (Boolean) params.get(PARAM_SKIPFAILURES.key));
     }
 
     public DataStore createNewDataStore(Map params) throws IOException {

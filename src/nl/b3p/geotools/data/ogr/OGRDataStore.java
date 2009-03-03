@@ -1,5 +1,6 @@
 package nl.b3p.geotools.data.ogr;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Map;
@@ -31,22 +32,25 @@ public class OGRDataStore extends AbstractFileDataStore {
         this.url = url;
         this.srs = srs;
         this.tmp_params = tmp_params;
+        strippedFile = getTypeName(url);
 
         // File to tmp postgis
-        processor = new OGRProcessor(url, tmp_params, srs, skipFailures);
+        processor = new OGRProcessor(url, tmp_params, srs, skipFailures, strippedFile);
+        processor.process();
 
         // Open tmp postgis
         postgisDataStore = new PostgisDataStoreFactory().createDataStore(tmp_params);
     }
 
     public String[] getTypeNames() throws IOException {
-        strippedFile = getTypeName(url);
         return new String[]{strippedFile};
     }
 
     public static String getTypeName(URL url) throws IOException {
-        String strippedFile = url.getFile();
-        strippedFile = strippedFile.substring(strippedFile.indexOf("."));
+        File file = new File(url.getFile());
+        String strippedFile = file.getName();
+
+        strippedFile = strippedFile.substring(0, strippedFile.indexOf("."));
         return strippedFile;
     }
 
@@ -55,7 +59,7 @@ public class OGRDataStore extends AbstractFileDataStore {
     }
 
     public FeatureType getSchema() throws IOException {
-        return postgisDataStore.getSchema(strippedFile);
+        return getSchema(strippedFile);
     }
 
     public FeatureReader getFeatureReader(Query query, Transaction trans) throws IOException {
