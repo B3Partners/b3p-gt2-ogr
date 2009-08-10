@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Properties;
 import org.geotools.data.DataStore;
 import org.geotools.data.Transaction;
 import org.geotools.data.jdbc.JDBCDataStore;
@@ -35,13 +34,15 @@ public class OGRProcessor {
     //private Map osParams;
     private String fwtools_dir;
     private Map<String, String> envirionment = new HashMap();
+    private boolean noDrop;
 
-    public OGRProcessor(URL url, Map db_tmp, String srs, boolean skipFailures, String typename, Map osFWTools) throws IOException {
+    public OGRProcessor(URL url, Map db_tmp, String srs, boolean skipFailures, String typename, Map osFWTools, boolean noDrop) throws IOException {
         this.file_in = (new File(url.getFile())).getAbsolutePath();
         this.typename = typename;
         this.db_out = translateParams(db_tmp);
         this.srs = srs;
         this.skipFailures = skipFailures;
+        this.noDrop = noDrop;
         setDirAndSetEnv(osFWTools);
     }
 
@@ -68,6 +69,7 @@ public class OGRProcessor {
         // Add own Java Envirionment Settings
         pb.environment().putAll(envirionment);
 
+        log.info("Starting OGR2OGR process");
         Process child = pb.start();
 
         BufferedReader errorReader = new BufferedReader(new InputStreamReader(child.getErrorStream()));
@@ -172,6 +174,7 @@ public class OGRProcessor {
     }
 
     public void close(DataStore dataStore2Read) {
+        if(!noDrop){
         try {
             // Drop temptable
             JDBCDataStore database = (JDBCDataStore) dataStore2Read;
@@ -186,6 +189,7 @@ public class OGRProcessor {
         } catch (Exception ex) {
             // Drop table failed no biggie
             log.error(ex.getLocalizedMessage());
+        }
         }
     }
 }

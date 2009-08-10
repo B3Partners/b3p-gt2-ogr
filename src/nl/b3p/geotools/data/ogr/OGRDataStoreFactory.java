@@ -9,7 +9,6 @@ import java.util.HashMap;
 import java.util.Map;
 import org.geotools.data.DataStore;
 import org.geotools.data.DataStoreFactorySpi;
-import org.geotools.data.DataStoreFactorySpi.Param;
 import org.geotools.data.FileDataStoreFactorySpi;
 import org.geotools.referencing.CRS;
 import org.opengis.referencing.FactoryException;
@@ -26,6 +25,7 @@ public class OGRDataStoreFactory implements FileDataStoreFactorySpi {
     public static final DataStoreFactorySpi.Param PARAM_OGR_TMP_DB = new Param("ogr_tmp_db", Map.class, "PostGIS temp database");
     public static final DataStoreFactorySpi.Param PARAM_SKIPFAILURES = new Param("skip_failures", Boolean.class, "skip ogr2ogr failures");
     public static final DataStoreFactorySpi.Param PARAM_OGR_SETTINGS = new Param("ogr_settings", Map.class, "Map containing os specific values for FWTools dirs");
+    public static final DataStoreFactorySpi.Param PARAM_NO_TEMP_DROP = new Param("no_tmp_drop", Boolean.class, "Disable drop of temp table");
 
     private static final String[] SUPPORTED = new String[]{
         "tab",
@@ -129,7 +129,12 @@ public class OGRDataStoreFactory implements FileDataStoreFactorySpi {
             throw new FileNotFoundException("File not found: " + params);
         }
 
-        return new OGRDataStore((URL) params.get(PARAM_URL.key), (String) params.get(PARAM_SRS.key), (Map) params.get(PARAM_OGR_TMP_DB.key), (Boolean) params.get(PARAM_SKIPFAILURES.key), (Map) params.get(PARAM_OGR_SETTINGS.key));
+        boolean noDrop = false;
+        if(params.containsKey(PARAM_NO_TEMP_DROP.key)){
+            noDrop = (Boolean) params.get(PARAM_NO_TEMP_DROP.key);
+        }
+
+        return new OGRDataStore((URL) params.get(PARAM_URL.key), (String) params.get(PARAM_SRS.key), (Map) params.get(PARAM_OGR_TMP_DB.key), (Boolean) params.get(PARAM_SKIPFAILURES.key), (Map) params.get(PARAM_OGR_SETTINGS.key), noDrop);
     }
 
     public DataStore createNewDataStore(Map params) throws IOException {

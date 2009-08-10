@@ -12,7 +12,7 @@ import org.geotools.data.AbstractFileDataStore;
 import org.geotools.data.DataStore;
 import org.geotools.data.FeatureReader;
 import org.geotools.data.postgis.PostgisDataStoreFactory;
-import org.geotools.feature.FeatureType;
+import org.opengis.feature.simple.SimpleFeatureType;
 
 /**
  *
@@ -28,14 +28,14 @@ public class OGRDataStore extends AbstractFileDataStore {
     private OGRProcessor processor;
     private Map ogr_tmp_db;
 
-    public OGRDataStore(URL url, String srs, Map ogr_tmp_db, boolean skipFailures, Map ogr_settings) throws IOException {
+    public OGRDataStore(URL url, String srs, Map ogr_tmp_db, boolean skipFailures, Map ogr_settings, boolean noDrop) throws IOException {
         this.url = url;
         this.srs = srs;
         this.ogr_tmp_db = ogr_tmp_db;
         strippedFile = getTypeName(url);
 
         // File to tmp postgis
-        processor = new OGRProcessor(url, ogr_tmp_db, srs, skipFailures, strippedFile, ogr_settings);
+        processor = new OGRProcessor(url, ogr_tmp_db, srs, skipFailures, strippedFile, ogr_settings, noDrop);
         processor.process();
 
         // Open tmp postgis
@@ -54,11 +54,11 @@ public class OGRDataStore extends AbstractFileDataStore {
         return strippedFile;
     }
 
-    public FeatureType getSchema(String typename) throws IOException {
+    public SimpleFeatureType getSchema(String typename) throws IOException {
         return postgisDataStore.getSchema(typename);
     }
 
-    public FeatureType getSchema() throws IOException {
+    public SimpleFeatureType getSchema() throws IOException {
         return getSchema(strippedFile);
     }
 
