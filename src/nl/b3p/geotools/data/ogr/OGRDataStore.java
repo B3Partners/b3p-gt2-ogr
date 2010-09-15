@@ -11,7 +11,7 @@ import org.apache.commons.logging.LogFactory;
 import org.geotools.data.AbstractFileDataStore;
 import org.geotools.data.DataStore;
 import org.geotools.data.FeatureReader;
-import org.geotools.data.postgis.PostgisDataStoreFactory;
+import org.geotools.data.postgis.PostgisNGDataStoreFactory;
 import org.opengis.feature.simple.SimpleFeatureType;
 
 /**
@@ -39,7 +39,7 @@ public class OGRDataStore extends AbstractFileDataStore {
         processor.process();
 
         // Open tmp postgis
-        postgisDataStore = new PostgisDataStoreFactory().createDataStore(ogr_tmp_db);
+        postgisDataStore = new PostgisNGDataStoreFactory().createDataStore(ogr_tmp_db);
     }
 
     public String[] getTypeNames() throws IOException {
