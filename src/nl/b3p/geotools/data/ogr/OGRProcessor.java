@@ -13,9 +13,9 @@ import java.util.Iterator;
 import java.util.Map;
 import org.geotools.data.DataStore;
 import org.geotools.data.Transaction;
-import org.geotools.data.jdbc.JDBCDataStore;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.geotools.jdbc.JDBCDataStore;
 
 /**
  *
